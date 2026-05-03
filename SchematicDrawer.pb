@@ -108,10 +108,6 @@ Structure SymbolLibrary
   entries.SymbolLibraryEntry[100]
   count.i
 EndStructure
-Structure UndoAction
-  actionType.i
-  data.s
-EndStructure
 Structure DrawingData
   lines.Line[1000]
   lineCount.i
@@ -134,10 +130,10 @@ Global selectedLineIndex = -1
 Global selectedSymbolIndex = -1
 Global isDrawing = 0
 Global startX.f, startY.f
-Global undoStack.UndoAction[100]
 Global undoStackCount = 0
-Global redoStack.UndoAction[100]
 Global redoStackCount = 0
+Global undoActions.s[100]
+Global redoActions.s[100]
 Global colWhite = RGB(255, 255, 255)
 Global colBlack = RGB(0, 0, 0)
 Global colRed = RGB(255, 0, 0)
@@ -360,7 +356,7 @@ Procedure AddLine(x1.f, y1.f, x2.f, y2.f, color.i, width.i)
     drawing\lines[drawing\lineCount]\selected = 0
     drawing\lineCount + 1
     drawing\modified = 1
-    PushUndoAction("AddLine", Format(x1) + "," + Format(y1) + "," + Format(x2) + "," + Format(y2))
+    PushUndoAction("AddLine")
   EndIf
 EndProcedure
 Procedure DeleteSelectedLine()
@@ -371,7 +367,7 @@ Procedure DeleteSelectedLine()
     drawing\lineCount - 1
     selectedLineIndex = -1
     drawing\modified = 1
-    PushUndoAction("DeleteLine", "")
+    PushUndoAction("DeleteLine")
   EndIf
 EndProcedure
 Procedure SelectLine(index.i)
@@ -425,7 +421,7 @@ Procedure AddSymbol(x.f, y.f, type.i, width.f, height.f)
     drawing\symbols[drawing\symbolCount]\selected = 0
     drawing\symbolCount + 1
     drawing\modified = 1
-    PushUndoAction("AddSymbol", Format(x) + "," + Format(y) + "," + Str(type))
+    PushUndoAction("AddSymbol")
   EndIf
 EndProcedure
 Procedure DeleteSelectedSymbol()
@@ -436,7 +432,7 @@ Procedure DeleteSelectedSymbol()
     drawing\symbolCount - 1
     selectedSymbolIndex = -1
     drawing\modified = 1
-    PushUndoAction("DeleteSymbol", "")
+    PushUndoAction("DeleteSymbol")
   EndIf
 EndProcedure
 Procedure SelectSymbol(index.i)
@@ -541,10 +537,9 @@ Procedure UpdateColorSelection(color.i)
   EndSelect
   currentColor = color
 EndProcedure
-Procedure PushUndoAction(actionType.s, data.s)
+Procedure PushUndoAction(actionType.s)
   If undoStackCount < 100
-    undoStack[undoStackCount]\actionType = actionType
-    undoStack[undoStackCount]\data = data
+    undoActions[undoStackCount] = actionType
     undoStackCount + 1
   EndIf
   redoStackCount = 0
@@ -552,12 +547,12 @@ EndProcedure
 Procedure Undo()
   If undoStackCount > 0
     undoStackCount - 1
-    SetStatusText("Undo: " + undoStack[undoStackCount]\actionType)
+    SetStatusText("Undo: " + undoActions[undoStackCount])
   EndIf
 EndProcedure
 Procedure Redo()
   If redoStackCount < 100
-    SetStatusText("Redo: " + redoStack[redoStackCount]\actionType)
+    SetStatusText("Redo: " + redoActions[redoStackCount])
     redoStackCount + 1
   EndIf
 EndProcedure
